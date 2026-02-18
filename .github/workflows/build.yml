@@ -1,17 +1,37 @@
-name: Rust
+name: Package-Build
+
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    types: [opened, synchronize, labeled]
+
 
 env:
   CARGO_TERM_COLOR: always
 
+
 jobs:
+  Lint:
+    runs-on: ubuntu-latest
+    if: >
+      (
+        github.event_name == 'push' &&
+        github.ref_protected || startsWith(github.ref, 'refs/tags/v')
+      ) ||
+      (
+        github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'enhancement')
+      )
+
+    steps:
+      - run: echo "Lint skipped"
+
+
   Build:
     runs-on: ubuntu-24.04
+    needs:
+      - Lint
 
     steps:
     - uses: actions/checkout@v2
@@ -22,8 +42,11 @@ jobs:
     - name: Build (all features enabled)
       run: cargo build --verbose --all-features
 
+
   Build-Windows:
     runs-on: windows-latest
+    needs:
+      - Lint
 
     steps:
     - uses: actions/checkout@v2
@@ -39,8 +62,11 @@ jobs:
     - name: Build (all features enabled)
       run: cargo build --verbose --all-features
 
+
   Build-WASM:
     runs-on: ubuntu-24.04
+    needs:
+      - Lint
 
     steps:
     - uses: actions/checkout@v2
