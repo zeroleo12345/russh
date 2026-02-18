@@ -6,10 +6,10 @@ edition = "2024"
 homepage = "https://github.com/warp-tech/russh"
 keywords = ["ssh"]
 license = "Apache-2.0"
-name = "russh"
+name = "rustssh"
 readme = "../README.md"
 repository = "https://github.com/warp-tech/russh"
-version = "0.57.0"
+version = "9.0.0"
 rust-version = "1.85"
 
 [features]
