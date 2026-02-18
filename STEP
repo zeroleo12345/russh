@@ -12,9 +12,6 @@ l target/debug/*rustssh2*
 
 ## 发布 rustssh2
 ``` bash
-env:
-  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
-
 cargo login
 
 # 打包文件
