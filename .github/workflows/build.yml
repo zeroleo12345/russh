@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - Lint
-
     steps:
     - uses: actions/checkout@v2
 
@@ -46,7 +45,6 @@ jobs:
     runs-on: windows-latest
     needs:
       - Lint
-
     steps:
     - uses: actions/checkout@v2
 
@@ -66,7 +64,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - Lint
-
     steps:
     - uses: actions/checkout@v2
 
