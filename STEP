@@ -23,5 +23,5 @@ cargo login
 cargo publish -p rustssh2 --dry-run
 
 cargo publish -p rustssh2
-# cargo publish --manifest-path russh/Cargo.toml
+# 等效: cargo publish --manifest-path russh/Cargo.toml
 ```
