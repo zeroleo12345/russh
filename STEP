@@ -10,7 +10,7 @@ l target/debug/*rustssh2*
 ```
 
 
-## 发布 crate: rustssh2
+## 发布到 crate.io: rustssh2
 ``` bash
 # 创建 API Tokens: https://crates.io/settings/tokens
 cargo login
