@@ -1,0 +1,27 @@
+## 编译 russh
+``` bash
+git clone git@github.com:zeroleo12345/russh.git
+
+mise use -g rust@1.88
+
+rm -rf target  &&  cargo build --verbose
+
+l target/debug/*rustssh2*
+```
+
+
+## 发布到 crate.io: rustssh2
+``` bash
+# 创建 API Tokens: https://crates.io/settings/tokens
+cargo login
+
+# 打包文件
+#cargo package -p rustssh2 --list
+#cargo package -p rustssh2
+
+# 发布
+cargo publish -p rustssh2 --dry-run
+
+cargo publish -p rustssh2
+# 等效: cargo publish --manifest-path russh/Cargo.toml
+```

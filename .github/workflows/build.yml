@@ -1,0 +1,76 @@
+name: Package-Build
+
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  Lint:
+    runs-on: ubuntu-latest
+    if: >
+      (
+        github.event_name == 'push' &&
+        github.ref_protected || startsWith(github.ref, 'refs/tags/v')
+      ) ||
+      (
+        github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'enhancement')
+      )
+    steps:
+      - run: echo "Lint skipped"
+
+
+  Build-Unix:
+    runs-on: ubuntu-24.04
+    needs:
+      - Lint
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build (no features enabled)
+      run: cargo build --verbose
+
+    - name: Build (all features enabled)
+      run: cargo build --verbose --all-features
+
+
+  Build-Windows:
+    runs-on: windows-latest
+    needs:
+      - Lint
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install nasm
+      run: |
+        choco install nasm
+        echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Build (no features enabled)
+      run: cargo build --verbose
+
+    - name: Build (all features enabled)
+      run: cargo build --verbose --all-features
+
+
+  Build-WASM:
+    runs-on: ubuntu-24.04
+    needs:
+      - Lint
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install target
+      run: |
+        rustup toolchain add 1.88.0
+        rustup target add --toolchain 1.88.0 wasm32-wasip1
+
+    - name: Build (WASM-compatible features)
+      run: cargo +1.88.0 build --verbose --target wasm32-wasip1 --no-default-features --features flate2,ring -p rustssh2

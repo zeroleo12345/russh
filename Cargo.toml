@@ -1,5 +1,6 @@
 [workspace]
-members = ["russh", "russh-config", "cryptovec", "pageant", "russh-util"]
+#members = ["russh", "russh-config", "cryptovec", "pageant", "russh-util"]
+members = ["russh"]
 resolver = "2"
 
 [workspace.dependencies]
