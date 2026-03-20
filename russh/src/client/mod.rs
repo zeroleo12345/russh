@@ -34,6 +34,7 @@
 //!
 //! [Session]: client::Session
 
+use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::convert::TryInto;
 use std::num::Wrapping;
@@ -92,7 +93,7 @@ pub struct Session {
     sender: UnboundedSender<Reply>,
     channels: HashMap<ChannelId, ChannelRef>,
     target_window_size: u32,
-    pending_reads: Vec<CryptoVec>,
+    pending_reads: Vec<Vec<u8>>,
     pending_len: u32,
     inbound_channel_sender: Sender<Msg>,
     inbound_channel_receiver: Receiver<Msg>,
@@ -695,7 +696,7 @@ impl<H: Handler> Handle<H> {
     ///
     /// If port == 0 the server will choose a port that will be returned, returns 0 otherwise
     pub async fn tcpip_forward<A: Into<String>>(
-        &mut self,
+        &self,
         address: A,
         port: u32,
     ) -> Result<u32, crate::Error> {
@@ -747,7 +748,7 @@ impl<H: Handler> Handle<H> {
 
     // Requests the server to open a UDS forward channel
     pub async fn streamlocal_forward<A: Into<String>>(
-        &mut self,
+        &self,
         socket_path: A,
     ) -> Result<(), crate::Error> {
         let (reply_send, reply_recv) = oneshot::channel();
@@ -815,9 +816,12 @@ impl<H: Handler> Handle<H> {
     ///
     /// This is useful for server-initiated channels; for channels created by
     /// the client, prefer to use the Channel returned from the `open_*` methods.
-    pub async fn data(&self, id: ChannelId, data: CryptoVec) -> Result<(), CryptoVec> {
+    pub async fn data(&self, id: ChannelId, data: impl Into<bytes::Bytes>) -> Result<(), bytes::Bytes> {
+        let data = data.into();
         self.sender
-            .send(Msg::Channel(id, ChannelMsg::Data { data }))
+            .send(Msg::Channel(id, ChannelMsg::Data {
+                data: data.clone(),
+            }))
             .await
             .map_err(|e| match e.0 {
                 Msg::Channel(_, ChannelMsg::Data { data, .. }) => data,
@@ -948,7 +952,7 @@ where
             config,
             wants_reply: false,
             disconnected: false,
-            buffer: CryptoVec::new(),
+            buffer: Vec::new(),
             strict_kex: false,
             alive_timeouts: 0,
             received_data: false,
@@ -990,7 +994,7 @@ async fn start_reading<R: AsyncRead + Unpin>(
 impl Session {
     fn maybe_decompress(&mut self, buffer: &SSHBuffer) -> Result<IncomingSshPacket, Error> {
         if let Some(ref mut enc) = self.common.encrypted {
-            let mut decomp = CryptoVec::new();
+            let mut decomp = Vec::new();
             Ok(IncomingSshPacket {
                 #[allow(clippy::indexing_slicing)] // length checked
                 buffer: enc.decompress.decompress(
@@ -1192,8 +1196,10 @@ impl Session {
 
             if let Some(ref mut enc) = self.common.encrypted {
                 if let EncryptedState::InitCompression = enc.state {
-                    enc.client_compression
-                        .init_compress(self.common.packet_writer.compress());
+                    if enc.client_compression.is_deferred() {
+                        enc.client_compression
+                            .init_compress(self.common.packet_writer.compress());
+                    }
                     enc.state = EncryptedState::Authenticated;
                 }
             }
@@ -1696,11 +1702,12 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            client_id: SshId::Standard(format!(
-                "SSH-2.0-{}_{}",
+            client_id: SshId::Standard(Cow::Borrowed(concat!(
+                "SSH-2.0-",
                 env!("CARGO_PKG_NAME"),
+                "_",
                 env!("CARGO_PKG_VERSION")
-            )),
+            ))),
             limits: Limits::default(),
             window_size: 2097152,
             maximum_packet_size: 32768,
